@@ -1,5 +1,6 @@
 import json
 import re
+from urllib.parse import urlparse
 
 import langdetect
 import praw
@@ -13,6 +14,17 @@ from .cache import LRUContext
 ua = UserAgent()
 
 _RE_SPLIT = re.compile(r"[\t\n\r\s]+")
+_BLACKLIST = [
+    "youtube.com",
+    "youtu.be",
+    "streamable.com",
+]
+
+
+def is_blacklisted(url):
+    url = urlparse(url)
+    domain = url.netloc.lower()
+    return any(site in domain for site in _BLACKLIST)
 
 
 def quote(url):
@@ -20,6 +32,9 @@ def quote(url):
 
 
 def process_submission(submission):
+    if is_blacklisted(submission.url):
+        return
+
     headers = {
         'User-Agent': ua.random,
     }
