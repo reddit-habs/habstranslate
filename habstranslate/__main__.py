@@ -1,9 +1,6 @@
 import json
 import re
-from pprint import pprint
-from io import StringIO
 
-import bs4.element
 import langdetect
 import praw
 import requests
@@ -11,10 +8,10 @@ from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 from requests import Request
 
+from .cache import LRUContext
+
 ua = UserAgent()
 
-_RE_TRIM_WHITESPACE_BLOCKS = re.compile(r"[\t\n\r\s]{2,}")
-_RE_TRIM_WHITESPACE = re.compile(r"[\t\n\r\s]")
 _RE_SPLIT = re.compile(r"[\t\n\r\s]+")
 
 
@@ -56,30 +53,6 @@ def process_submission(submission):
                 raise
 
 
-class Cache():
-
-    def __init__(self):
-        try:
-            with open('cache.json') as f:
-                items = json.load(f)
-                self._known_submissions = set(items)
-        except (FileNotFoundError, json.JSONDecodeError):
-            self._known_submissions = set()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        with open('cache.json', 'w') as f:
-            json.dump(list(self._known_submissions), f)
-
-    def has(self, submission):
-        return submission.id in self._known_submissions
-
-    def add(self, submission):
-        self._known_submissions.add(submission.id)
-
-
 def main():
     with open('config.json') as f:
         config = json.load(f)
@@ -92,17 +65,21 @@ def main():
 
         subreddit = reddit.subreddit(config['subreddit'])
 
-        with Cache() as cache:
-            for submission in subreddit.stream.submissions():
-                if cache.has(submission):
-                    continue
-                cache.add(submission)
-                print(submission.title)
-                if not submission.is_self:
-                    try:
-                        process_submission(submission)
-                    except Exception as e:
-                        raise
+        with LRUContext("lru_cache.txt", 150) as cache:
+            try:
+                for submission in subreddit.stream.submissions():
+                    if cache.has(submission.id):
+                        continue
+                    cache.add(submission.id)
+                    print(submission.title)
+                    if not submission.is_self:
+                        try:
+                            process_submission(submission)
+                        except Exception as e:
+                            raise
+            except KeyboardInterrupt:
+                print()
+                pass
 
 
 if __name__ == '__main__':
