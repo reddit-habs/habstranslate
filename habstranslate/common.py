@@ -1,5 +1,7 @@
 import json
 import re
+import sys
+from datetime import datetime, timedelta
 from threading import Event, RLock, Thread
 from urllib.parse import urlparse
 
@@ -10,8 +12,6 @@ import langdetect
 import praw
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
-
-from datetime import datetime, timedelta
 
 _RE_SPLIT = re.compile(r"[\t\n\r\s]+")
 
@@ -106,7 +106,9 @@ def quote(url):
 
 
 def printf(fmt, *args, **kwargs):
-    print(fmt.format(*args, **kwargs))
+    sys.stdout.write(fmt.format(*args, **kwargs))
+    sys.stdout.write("\n")
+    sys.stdout.flush()
 
 
 def detect_lang(doc):

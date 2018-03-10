@@ -1,4 +1,5 @@
 import json
+
 from .common import Whitelist
 from .inbox import Inbox
 from .submissions import Submissions

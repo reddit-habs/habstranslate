@@ -1,6 +1,6 @@
-from .common import Task, reddit_from_conf, printf
-
 from praw.models import Comment
+
+from .common import Task, printf, reddit_from_conf
 
 
 class Inbox(Task):
