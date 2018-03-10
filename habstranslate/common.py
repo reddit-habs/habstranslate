@@ -11,6 +11,8 @@ import praw
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
+from datetime import datetime, timedelta
+
 _RE_SPLIT = re.compile(r"[\t\n\r\s]+")
 
 
@@ -45,10 +47,17 @@ class Task:
 
     def process_submission(self, submission):
         try:
+            # from pprint import pprint
+            # pprint(vars(submission))
             printf("Analyzing submission {}", submission.title)
 
             if submission.is_self:
                 printf("Self post submission, skipping")
+                return
+
+            created = datetime.utcfromtimestamp(submission.created_utc)
+            if (datetime.utcnow() - created) > timedelta(days=1):
+                printf("Submission is older than a day, skipping")
                 return
 
             if submission.url not in self._whitelist:
@@ -71,20 +80,23 @@ class Task:
             doc = BeautifulSoup(resp.text, "html.parser")
             lang = detect_lang(doc)
 
+            message = None
+
             if lang == "en":
                 translation_url = translate_url(submission.url, "fr")
                 message = "[Traduction]({})".format(translation_url)
             elif lang == "fr":
                 translation_url = translate_url(submission.url, "en")
                 message = "[Translation]({})".format(translation_url)
-            try:
-                printf("Replying with translated link")
-                submission.reply(message)
-            except praw.exceptions.APIException as e:
-                if e.error_type == 'TOO_OLD':
-                    pass
-                else:
-                    raise
+            if message:
+                try:
+                    printf("Replying with translated link")
+                    submission.reply(message)
+                except praw.exceptions.APIException as e:
+                    if e.error_type == 'TOO_OLD':
+                        pass
+                    else:
+                        raise
         finally:
             printf("------")
 
