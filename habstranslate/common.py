@@ -1,5 +1,4 @@
 import json
-import re
 import sys
 from datetime import datetime, timedelta
 from threading import Event, RLock, Thread
@@ -7,14 +6,12 @@ from threading import Event, RLock, Thread
 import requests
 from requests import Request
 
-import langdetect
 import praw
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 from tldextract import TLDExtract
 
-_RE_SPLIT = re.compile(r"[\t\n\r\s]+")
-
+from .detection import detect_lang
 
 ua = UserAgent()
 tldextract = TLDExtract(suffix_list_urls=None)
@@ -79,7 +76,7 @@ class Task:
                 return
 
             doc = BeautifulSoup(resp.text, "html.parser")
-            lang = detect_lang(doc)
+            lang = detect_lang(doc, get_domain(submission.url))
 
             message = None
 
@@ -112,17 +109,6 @@ def printf(fmt, *args, **kwargs):
     sys.stdout.flush()
 
 
-def detect_lang(doc):
-    words = []
-    for elem in doc.find_all('p'):
-        text = elem.text
-        for word in _RE_SPLIT.split(text):
-            if len(word) > 0 and len(word) <= 25:
-                words.append(word)
-    all_text = ' '.join(words)
-    return langdetect.detect(all_text)
-
-
 def reddit_from_conf(config):
     return praw.Reddit(client_id=config['client_id'],
                        client_secret=config['client_secret'],
@@ -141,7 +127,7 @@ def translate_url(url, target):
 def get_domain(url):
     info = tldextract(url)
     domain = '.'.join(part for part in [info.domain, info.suffix] if part)
-    return domain
+    return domain.lower()
 
 
 class Whitelist:
