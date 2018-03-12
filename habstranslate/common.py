@@ -3,7 +3,6 @@ import re
 import sys
 from datetime import datetime, timedelta
 from threading import Event, RLock, Thread
-from urllib.parse import urlparse
 
 import requests
 from requests import Request
@@ -12,11 +11,13 @@ import langdetect
 import praw
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
+from tldextract import TLDExtract
 
 _RE_SPLIT = re.compile(r"[\t\n\r\s]+")
 
 
 ua = UserAgent()
+tldextract = TLDExtract(suffix_list_urls=None)
 
 
 class Task:
@@ -138,8 +139,9 @@ def translate_url(url, target):
 
 
 def get_domain(url):
-    url = urlparse(url)
-    return url.netloc.lower()
+    info = tldextract(url)
+    domain = '.'.join(part for part in [info.domain, info.suffix] if part)
+    return domain
 
 
 class Whitelist:
