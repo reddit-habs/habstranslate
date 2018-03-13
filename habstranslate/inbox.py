@@ -13,13 +13,18 @@ class Inbox(Task):
 
     def run(self):
         reddit = reddit_from_conf(self._conf)
+        subreddit = reddit.subreddit(self._conf['subreddit'])
+
+        authorized_users = set(map(str.lower, self._conf.get('authorized_users', [])))
+
         for item in reddit.inbox.stream():
             reddit.inbox.mark_read([item])
             if not isinstance(item, Comment) and item.subject != 'username mention':
                 continue
             if 'whitelist' in item.body.lower():
                 printf("White listing request received")
-                if item.author.name not in self._conf['authorized_users']:
+                mods = set(mod.name.lower() for mod in subreddit.moderator())
+                if item.author.name not in (authorized_users | mods):
                     printf("User is not authorized to whitelist\n------")
                     continue
                 submission = item.submission
