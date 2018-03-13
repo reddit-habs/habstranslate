@@ -81,11 +81,15 @@ class Task:
             message = None
 
             if lang == "en":
-                translation_url = translate_url(submission.url, "fr")
-                message = "[Traduction]({})".format(translation_url)
+                message = "[Traduction]({})\n\n[Lien alternatif]({})".format(
+                    google_translate_url(submission.url, "fr"),
+                    bing_translate_url(submission.url, "fr")
+                )
             elif lang == "fr":
-                translation_url = translate_url(submission.url, "en")
-                message = "[Translation]({})".format(translation_url)
+                message = "[Translation]({})\n\n[Alternate link]({})".format(
+                    google_translate_url(submission.url, "fr"),
+                    bing_translate_url(submission.url, "fr")
+                )
             if message:
                 try:
                     printf("Replying with translated link")
@@ -117,11 +121,20 @@ def reddit_from_conf(config):
                        user_agent=config['user_agent'])
 
 
-def translate_url(url, target):
-    params = dict(sl="auto", tl=target, u=url)
-    req = Request('GET', "https://translate.google.com/translate", params=params)
+def url_with_params(base_url, params=None):
+    req = Request('GET', base_url, params=params)
     prepped = req.prepare()
-    return quote(prepped.url)
+    return prepped.url
+
+
+def google_translate_url(url, target):
+    params = dict(sl="auto", tl=target, u=url)
+    return quote(url_with_params("https://translate.google.com/translate", params))
+
+
+def bing_translate_url(url, target):
+    params = {'from': '', 'to': target, 'a': url}
+    return quote(url_with_params("http://www.microsofttranslator.com/bv.aspx", params))
 
 
 def get_domain(url):
