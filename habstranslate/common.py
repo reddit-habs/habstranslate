@@ -87,8 +87,8 @@ class Task:
                 )
             elif lang == "fr":
                 message = "[Translation]({})\n\n[Alternate link]({})".format(
-                    google_translate_url(submission.url, "fr"),
-                    bing_translate_url(submission.url, "fr")
+                    google_translate_url(submission.url, "en"),
+                    bing_translate_url(submission.url, "en")
                 )
             if message:
                 try:
