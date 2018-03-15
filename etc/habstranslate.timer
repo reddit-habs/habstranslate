@@ -1,6 +1,5 @@
 [Unit]
 Description=Run habstranslate every minute
-Requires=tankbot.service
 
 [Timer]
 OnCalendar=minutely
