@@ -3,11 +3,9 @@ Description=Translator for /r/habs
 After=network-online.target
 
 [Service]
-Type=simple
+Type=oneshot
+RemainAfterExit=no
 User=root
+Group=root
 WorkingDirectory=/root/habstranslate
 ExecStart=/usr/bin/python3 -m habstranslate
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
