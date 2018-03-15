@@ -233,7 +233,7 @@ def main():
         params = dict(before=storage.before)
     else:
         params = {}
-    submissions = list(subreddit.new(limit=None, params=params))
+    submissions = list(subreddit.new(limit=25, params=params))
     for submission in submissions:
         process_submission(config, storage, submission, replies)
 
