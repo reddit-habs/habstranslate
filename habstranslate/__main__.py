@@ -159,7 +159,7 @@ class Config:
 
 @attrs(slots=True)
 class Storage:
-    before = attrib(default=None)
+    before = attrib(default=0)
     _domains = attrib(default=attr.Factory(set))
 
     def whitelist(self, url_or_domain):
@@ -229,16 +229,15 @@ def main():
                     process_submission(config, storage, submission, replies)
     reddit.inbox.mark_read(mentions)
 
-    if storage.before:
-        params = dict(before=storage.before)
-    else:
-        params = {}
-    submissions = list(subreddit.new(limit=25, params=params))
+    submissions = list(subreddit.new(limit=10))
+    before = datetime.utcfromtimestamp(storage.before)
     for submission in submissions:
-        process_submission(config, storage, submission, replies)
+        created = datetime.utcfromtimestamp(submission.created_utc)
+        if created > before:
+            process_submission(config, storage, submission, replies)
 
     if len(submissions) > 0:
-        storage.before = submissions[0].fullname
+        storage.before = submissions[0].created_utc
 
     storage.save()
 
