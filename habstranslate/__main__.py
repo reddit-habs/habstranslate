@@ -60,13 +60,13 @@ def url_with_params(base_url, params=None):
     return prepped.url
 
 
-def google_translate_url(url, target):
-    params = dict(sl="auto", tl=target, u=url)
+def google_translate_url(url, source, target):
+    params = dict(sl=source, tl=target, u=url)
     return quote(url_with_params("https://translate.google.com/translate", params))
 
 
-def bing_translate_url(url, target):
-    params = {'from': '', 'to': target, 'a': url}
+def bing_translate_url(url, source, target):
+    params = {'from': source, 'to': target, 'a': url}
     return quote(url_with_params("http://www.microsofttranslator.com/bv.aspx", params))
 
 
@@ -117,13 +117,13 @@ def process_submission(config, storage, submission, replies):
 
         if lang == "en":
             message = "[Traduction]({})\n\n[Lien alternatif]({})".format(
-                google_translate_url(submission.url, "fr"),
-                bing_translate_url(submission.url, "fr")
+                google_translate_url(submission.url, "en", "fr"),
+                bing_translate_url(submission.url, "en", "fr")
             )
         elif lang == "fr":
             message = "[Translation]({})\n\n[Alternate link]({})".format(
-                google_translate_url(submission.url, "en"),
-                bing_translate_url(submission.url, "en")
+                google_translate_url(submission.url, "fr", "en"),
+                bing_translate_url(submission.url, "fr", "en")
             )
         if message:
             try:
