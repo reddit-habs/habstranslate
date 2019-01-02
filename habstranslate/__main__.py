@@ -8,16 +8,15 @@ from pathlib import Path
 import attr
 import requests
 from attr import attrib, attrs
+from bs4 import BeautifulSoup
 from requests import Request
 
 import praw
-from bs4 import BeautifulSoup
-from fake_useragent import UserAgent
 from tldextract import TLDExtract
 
 from .detection import detect_lang
 
-ua = UserAgent()
+ua = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0"
 tldextract = TLDExtract(suffix_list_urls=None)
 
 
@@ -43,19 +42,21 @@ def print_block():
 
 
 def quote(url):
-    return url.replace("(", "\(").replace(")", "\)")
+    return url.replace("(", r"\(").replace(")", r"\)")
 
 
 def reddit_from_conf(config):
-    return praw.Reddit(client_id=config.client_id,
-                       client_secret=config.client_secret,
-                       username=config.username,
-                       password=config.password,
-                       user_agent=config.user_agent)
+    return praw.Reddit(
+        client_id=config.client_id,
+        client_secret=config.client_secret,
+        username=config.username,
+        password=config.password,
+        user_agent=config.user_agent,
+    )
 
 
 def url_with_params(base_url, params=None):
-    req = Request('GET', base_url, params=params)
+    req = Request("GET", base_url, params=params)
     prepped = req.prepare()
     return prepped.url
 
@@ -66,13 +67,13 @@ def google_translate_url(url, source, target):
 
 
 def bing_translate_url(url, source, target):
-    params = {'from': source, 'to': target, 'a': url}
+    params = {"from": source, "to": target, "a": url}
     return quote(url_with_params("http://www.microsofttranslator.com/bv.aspx", params))
 
 
 def get_domain(url):
     info = tldextract(url)
-    domain = '.'.join(part for part in [info.domain, info.suffix] if part)
+    domain = ".".join(part for part in [info.domain, info.suffix] if part)
     return domain.lower()
 
 
@@ -97,17 +98,16 @@ def process_submission(config, storage, submission, replies):
             printf("Submission is in the replies set, skipping")
             return
 
-        if any(comment.author.name.lower() == config.username.lower()
-               for comment in submission.comments if comment.is_root):
+        if any(
+            comment.author.name.lower() == config.username.lower() for comment in submission.comments if comment.is_root
+        ):
             printf("Submission has already been replied to, skipping")
             return
 
-        headers = {
-            'User-Agent': ua.random,
-        }
+        headers = {"User-Agent": ua}
         resp = requests.get(submission.url, headers=headers)
         resp.raise_for_status()
-        if "text/html" not in resp.headers['content-type']:
+        if "text/html" not in resp.headers["content-type"]:
             return
 
         doc = BeautifulSoup(resp.text, "html.parser")
@@ -117,13 +117,11 @@ def process_submission(config, storage, submission, replies):
 
         if lang == "en":
             message = "[Traduction]({})\n\n[Lien alternatif]({})".format(
-                google_translate_url(submission.url, "en", "fr"),
-                bing_translate_url(submission.url, "en", "fr")
+                google_translate_url(submission.url, "en", "fr"), bing_translate_url(submission.url, "en", "fr")
             )
         elif lang == "fr":
             message = "[Translation]({})\n\n[Alternate link]({})".format(
-                google_translate_url(submission.url, "fr", "en"),
-                bing_translate_url(submission.url, "fr", "en")
+                google_translate_url(submission.url, "fr", "en"), bing_translate_url(submission.url, "fr", "en")
             )
         if message:
             try:
@@ -131,7 +129,7 @@ def process_submission(config, storage, submission, replies):
                 submission.reply(message)
                 replies.add(submission)
             except praw.exceptions.APIException as e:
-                if e.error_type == 'TOO_OLD':
+                if e.error_type == "TOO_OLD":
                     pass
                 else:
                     raise
@@ -169,7 +167,7 @@ class Storage:
         return get_domain(url_or_domain) in self._domains
 
     @classmethod
-    def load(cls, path='storage.pickles'):
+    def load(cls, path="storage.pickles"):
         # also includes code to migrate to new format
         domains = []
 
@@ -181,7 +179,7 @@ class Storage:
             pass
 
         try:
-            storage = pickle.load(Path(path).open('rb'))
+            storage = pickle.load(Path(path).open("rb"))
         except FileNotFoundError:
             storage = Storage()
 
@@ -190,8 +188,8 @@ class Storage:
 
         return storage
 
-    def save(self, path='storage.pickles'):
-        with open(path, 'wb') as f:
+    def save(self, path="storage.pickles"):
+        with open(path, "wb") as f:
             pickle.dump(self, f)
 
 
@@ -202,7 +200,7 @@ def get_authorized_users(config, subreddit):
 
 
 def is_mention(inbox_item):
-    return isinstance(inbox_item, praw.models.Comment) and inbox_item.subject == 'username mention'
+    return isinstance(inbox_item, praw.models.Comment) and inbox_item.subject == "username mention"
 
 
 def main():
@@ -216,7 +214,7 @@ def main():
     # mentions are usually bot commands
     mentions = list(filter(is_mention, reddit.inbox.unread(limit=None)))
     for mention in mentions:
-        if 'whitelist' in mention.body.lower():
+        if "whitelist" in mention.body.lower():
             with print_block():
                 printf("White listing request received")
                 if mention.author.name.lower() not in authorized_users:
@@ -242,5 +240,5 @@ def main():
     storage.save()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
